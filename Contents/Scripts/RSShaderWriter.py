@@ -21,7 +21,7 @@ import re
 
 mayaTypeToSdf = {'kFloat' : Sdf.ValueTypeNames.Float,
                 'kInt' : Sdf.ValueTypeNames.Int,
-                'kColor' : Sdf.ValueTypeNames.Color3f,
+                'kColor' : Sdf.ValueTypeNames.Color4f,
                 'Kstring' : Sdf.ValueTypeNames.String,
                 'k2Float' : Sdf.ValueTypeNames.Float2,
                 'k3Float' : Sdf.ValueTypeNames.Float3,
@@ -77,7 +77,7 @@ mayaShaderToRS = {"MultiOutputChannelTexmapToTexmap" : ["", 'out'],
                 "RedshiftFlakes" : ['RSFlakes', 'out'],
                 "RedshiftMathFloor" : ['RSMathFloor', 'out'],
                 "RedshiftMathFrac" : ['RSMathFrac', 'out'],
-                "RedshiftFresnel" : ['RSFresnel', 'out'],
+                "RedshiftFresnel" : ['Fresnel', 'out'],
                 "RedshiftMathGain" : ['RSMathGain', 'out'],
                 "RedshiftHSV2Color" : ['RSHSVToColor', 'outColor'],
                 "RedshiftHairPosition" : ['RSHairPosition', 'outVector'],
@@ -161,7 +161,8 @@ mayaShaderToRS = {"MultiOutputChannelTexmapToTexmap" : ["", 'out'],
                 "RedshiftMaterial" :        ['Material', 'outColor'],
                 "remapValue" :              ['RSMathRange', 'out'],
                 "RedshiftVertexColor " :      ['RSUserDataColor', 'out'],
-                "RedshiftOpenPBRMaterial" :    ['OpenPBRMaterial', "outColor"]}
+                "RedshiftOpenPBRMaterial" :    ['OpenPBRMaterial', "outColor"],
+                "luminance": ['RSColorSplitter', 'outValue']} # this is a hack, as there's no other good way of turning a colour value into a float
 
 propertyRemaps = {"RedshiftMaterialBlender" : {"outColor": "out"},
                   "RedshiftBumpBlender" : {"outColor" : "outDisplacementVector"},
@@ -170,7 +171,9 @@ propertyRemaps = {"RedshiftMaterialBlender" : {"outColor": "out"},
                   "colorConstant" : {"inColor": "color"},
                   "floatConstant" : {"inFloat": "val", "outFloat" : "out"},
                   "file" : {"outAlpha" : "outColor"},
-                  "remapValue" : {"inputValue" : "input", "inputMin" : "old_min", "inputMax" : "old_max", "outputMin" : "new_min", "outputMax" : "new_max", "outColor" : "out", "outValue" : "out"}
+                  "remapValue" : {"inputValue" : "input", "inputMin" : "old_min", "inputMax" : "old_max", "outputMin" : "new_min", "outputMax" : "new_max", "outColor" : "out", "outValue" : "out"},
+                  "luminance": {"value": "input", "outValue": "outR"},
+                  "RedshiftTexture": {"alphaOffset": "alpha_offset"},
                   }
 
 class RSShaderWriter(mayaUsd.lib.ShaderWriter):
@@ -234,7 +237,7 @@ class RSShaderWriter(mayaUsd.lib.ShaderWriter):
         sdfType = Sdf.ValueTypeNames.Token
 
         if type == 'k3Float':
-            value = (plug.child(0).asFloat(), plug.child(1).asFloat(), plug.child(2).asFloat())
+            value = (plug.child(0).asFloat(), plug.child(1).asFloat(), plug.child(2).asFloat(), 1.0)
             if plug.child(0).name().endswith("R"):
                 sdfType = mayaTypeToSdf['kColor']
             else:
